@@ -3,6 +3,7 @@ from typing import Union
 
 from fastapi import FastAPI
 from langchain import LLMChain
+import openai
 from pydantic import BaseModel
 from langchain.prompts import PromptTemplate
 from langchain.llms import OpenAI
@@ -13,7 +14,9 @@ import requests
 import urllib.parse
 import json
 
-os.environ["OPENAI_API_KEY"] = "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"
+OPEN_AI_API_KEY = "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"
+os.environ["OPENAI_API_KEY"] = OPEN_AI_API_KEY
+openai.api_key = OPEN_AI_API_KEY #"ssk-eM518KKScep9NO4MmvbHT3BlbkFJLDY1PNzBDBHQSBdQv6IJ"
 
 app = FastAPI()
 
@@ -38,7 +41,7 @@ def read_root():
 def read_root(item :Item):
     recipe_name = get_recipe_name(item.ingredients)
     recipe_details = get_recipe_details(recipe_name)
-    recipe_image = get_recipes_image_url(recipe_name)
+    recipe_image = generate_meal_image(recipe_name)
     return {"recipe_name": recipe_name, "recipe_details": recipe_details, "recipe_image": recipe_image}
 
 
@@ -77,6 +80,22 @@ def get_recipe_details(recipe_name):
 
     return chain.run(recipe_name)
 
+def generate_meal_image(name):
+    # Generate image with DALL-E 2
+    response = openai.Image.create(
+        prompt=f"a {name}",
+        n=1,
+        size="512x512",
+        response_format="url"
+    )
+    image_url = response['data'][0]['url']
+
+    # Check if image is accessible
+    response = requests.get(image_url)
+    if response.status_code != 200:
+        raise ValueError("Failed to download image")
+
+    return image_url
 def text_to_markdown(text):
     # Convert headers
     text = re.sub(r'^(#+)\s*(.*)', r'\1 \2', text, flags=re.MULTILINE)
